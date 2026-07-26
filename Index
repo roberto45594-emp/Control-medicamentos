@@ -1,19 +1,4 @@
-
-                        <!DOCTYPE html>
-                        <html lang="en">
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body {
-                  background-color: white; /* Ensure the iframe has a white background */
-                }
-
-                
-              </style>
-                        </head>
-                        <body>
-                            <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -457,18 +442,3 @@ init();
 
 </body>
 </html>
-
-
-              <script>
-                              const firebaseConfig = {
-  apiKey: "AIza...",
-  authDomain: "tuapp.firebaseapp.com",
-  projectId: "tuapp",
-  ...
-};
-
-
-              </script>
-                        </body>
-                        </html>
-                    
