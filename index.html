@@ -54,7 +54,6 @@
   .btn-del:hover { background: #d32f2f; }
 
   .empty { text-align: center; padding: 40px; color: #888; }
-  .loading { text-align: center; padding: 20px; color: #666; }
   .history { margin-top: 25px; background: #f8f9fc; padding: 15px; border-radius: 12px; }
   .history h3 { color: #4a5fc1; margin-bottom: 10px; font-size: 1em; }
   .history-item { padding: 6px 0; border-bottom: 1px solid #e0e4ef; font-size: 0.88em; color: #555; }
@@ -106,282 +105,291 @@
   </div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script>
+// ====== BASE DE DATOS LOCAL (localStorage) ======
+let currentKid = null;
+let kids = [];
+let medsCache = {};
+let refreshInterval = null;
 
-  // ⚠️ PASO CRÍTICO: Reemplaza estos valores con los de tu proyecto de Firebase
-  const firebaseConfig = {
-    apiKey: "TU_API_KEY_AQUI",
-    authDomain: "TU_PROYECTO.firebaseapp.com",
-    projectId: "TU_PROYECTO_ID",
-    storageBucket: "TU_PROYECTO.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId: "TU_APP_ID"
-  };
-
-  // Verificación de seguridad para avisarte si no has puesto tus claves
-  if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
-    alert("⚠️ AVISO: La app no funcionará hasta que reemplaces las claves de Firebase en el código. Revisa las instrucciones.");
+// Cargar datos guardados
+function loadData() {
+  const savedKids = localStorage.getItem('medKids');
+  if (savedKids) {
+    kids = JSON.parse(savedKids);
   }
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  let currentKid = null;
-  let kids = [];
-  let medsCache = {};
-  let refreshInterval = null;
-
-  window.saveConfig = async function() {
-    const inputs = document.querySelectorAll('.kid-input');
-    const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n);
-    if (names.length === 0) { alert('Ingresa al menos un nombre'); return; }
-    kids = names;
-    await setDoc(doc(db, 'config', 'main'), { kids, updatedAt: Date.now() });
-    localStorage.setItem('kids', JSON.stringify(kids));
-    showMain();
-  };
-
-  window.resetConfig = async function() {
-    if (!confirm('¿Reconfigurar nombres? Se conservarán los medicamentos.')) return;
-    document.getElementById('setupSection').style.display = 'block';
-    document.getElementById('mainSection').style.display = 'none';
-    renderKidsInputs();
-  };
-
-  function renderKidsInputs() {
-    const cont = document.getElementById('kidsInputs');
-    cont.innerHTML = '';
-    for (let i = 0; i < 7; i++) {
-      const inp = document.createElement('input');
-      inp.className = 'kid-input';
-      inp.placeholder = `Hijo ${i+1}`;
-      inp.value = kids[i] || '';
-      cont.appendChild(inp);
-    }
-  }
-
-  async function showMain() {
-    document.getElementById('setupSection').style.display = 'none';
-    document.getElementById('mainSection').style.display = 'block';
-    renderTabs();
-    selectKid(kids[0]);
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(() => renderMeds(), 30000);
-  }
-
-  function renderTabs() {
-    const tabs = document.getElementById('tabs');
-    tabs.innerHTML = '';
-    kids.forEach((k) => {
-      const btn = document.createElement('button');
-      btn.className = 'tab';
-      btn.dataset.kid = k;
-      btn.innerHTML = `👤 ${k}`;
-      btn.onclick = () => selectKid(k);
-      tabs.appendChild(btn);
-    });
-  }
-
-  function selectKid(kid) {
-    currentKid = kid;
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.kid === kid));
-    loadMeds(kid);
-  }
-
-  window.addMed = async function() {
-    const name = document.getElementById('medName').value.trim();
-    const dose = document.getElementById('medDose').value.trim();
-    const freq = parseFloat(document.getElementById('medFreq').value);
-    const time = document.getElementById('medTime').value;
-    if (!name || !freq || !time) { alert('Completa nombre, frecuencia y hora'); return; }
-
-    const id = 'm_' + Date.now();
-    const med = { id, name, dose, freq, startTime: time, lastTaken: null, createdAt: Date.now(), history: [] };
-
-    const ref = doc(db, 'meds', currentKid);
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : { meds: [] };
-    data.meds = data.meds || [];
-    data.meds.push(med);
-    await setDoc(ref, data);
-
-    document.getElementById('medName').value = '';
-    document.getElementById('medDose').value = '';
-    document.getElementById('medFreq').value = '';
-    loadMeds(currentKid);
-  };
-
-  window.takeMed = async function(medId) {
-    const ref = doc(db, 'meds', currentKid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const med = data.meds.find(m => m.id === medId);
-    if (!med) return;
-
-    const now = new Date();
-    med.lastTaken = now.toISOString();
-    med.history = med.history || [];
-    med.history.unshift({ takenAt: now.toISOString(), note: 'Tomado' });
-    if (med.history.length > 20) med.history = med.history.slice(0, 20);
-
-    await setDoc(ref, data);
-    loadMeds(currentKid);
-  };
-
-  window.deleteMed = async function(medId) {
-    if (!confirm('¿Eliminar este medicamento?')) return;
-    const ref = doc(db, 'meds', currentKid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    data.meds = data.meds.filter(m => m.id !== medId);
-    await setDoc(ref, data);
-    loadMeds(currentKid);
-  };
-
-  async function loadMeds(kid) {
-    const list = document.getElementById('medList');
-    list.innerHTML = '<div class="loading">Cargando...</div>';
-    try {
-      const ref = doc(db, 'meds', kid);
-      const snap = await getDoc(ref);
-      const data = snap.exists() ? snap.data() : { meds: [] };
-      medsCache[kid] = data.meds || [];
-      renderMeds();
-    } catch (e) {
-      list.innerHTML = '<div class="empty">Error al cargar. Verifica tu configuración de Firebase.</div>';
-      console.error(e);
-    }
-  }
-
-  function renderMeds() {
-    const list = document.getElementById('medList');
-    const meds = medsCache[currentKid] || [];
-    if (meds.length === 0) {
-      list.innerHTML = '<div class="empty">📭 No hay medicamentos registrados.<br>Agrega el primero arriba.</div>';
-      document.getElementById('historySection').style.display = 'none';
-      return;
-    }
-
-    const now = new Date();
-    const withNext = meds.map(m => {
-      const next = calcNextTime(m, now);
-      const diffMin = (next - now) / 60000;
-      return { ...m, nextTime: next, diffMin };
-    }).sort((a, b) => a.diffMin - b.diffMin);
-
-    const urgentCount = withNext.filter(m => m.diffMin <= 0).length;
-    const tab = document.querySelector(`.tab[data-kid="${currentKid}"]`);
-    if (tab) {
-      tab.innerHTML = `👤 ${currentKid}${urgentCount > 0 ? `<span class="badge">${urgentCount}</span>` : ''}`;
-    }
-
-    list.innerHTML = withNext.map(m => {
-      let statusClass = 'ok', statusText = 'A tiempo', cardClass = '';
-      if (m.diffMin <= 0) {
-        statusClass = 'late'; statusText = `⚠️ Pasó hace ${Math.abs(Math.round(m.diffMin))} min`; cardClass = 'urgent';
-      } else if (m.diffMin <= 30) {
-        statusClass = 'soon'; statusText = `Pronto: en ${Math.round(m.diffMin)} min`; cardClass = 'soon';
-      } else {
-        const h = Math.floor(m.diffMin / 60);
-        const min = Math.round(m.diffMin % 60);
-        statusText = `En ${h}h ${min}min`;
-      }
-
-      const nextStr = m.nextTime.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-      const lastStr = m.lastTaken ? new Date(m.lastTaken).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Nunca';
-
-      return `
-        <div class="med-card ${cardClass}">
-          <div class="med-info">
-            <h4>💊 ${m.name}</h4>
-            <div class="dose">${m.dose || 'Sin dosis'} · Cada ${m.freq}h</div>
-            <div class="next">Próxima toma: <strong>${nextStr}</strong></div>
-            <div class="next">Última toma: <small>${lastStr}</small></div>
-            <span class="status ${statusClass}">${statusText}</span>
-          </div>
-          <div class="med-actions">
-            <button class="btn-take" onclick="takeMed('${m.id}')">✅ Tomado</button>
-            <button class="btn-del" onclick="deleteMed('${m.id}')">🗑️ Eliminar</button>
-          </div>
-        </div>`;
-    }).join('');
-
-    const allHistory = [];
-    meds.forEach(m => {
-      (m.history || []).forEach(h => allHistory.push({ med: m.name, dose: m.dose, takenAt: new Date(h.takenAt) }));
-    });
-    allHistory.sort((a,b) => b.takenAt - a.takenAt);
-    const recent = allHistory.slice(0, 10);
-    const histSec = document.getElementById('historySection');
-    if (recent.length > 0) {
-      histSec.style.display = 'block';
-      document.getElementById('historyList').innerHTML = recent.map(h => 
-        `<div class="history-item">✅ <b>${h.med}</b> ${h.dose} — ${h.takenAt.toLocaleString('es')}</div>`
-      ).join('');
+  
+  // Cargar medicamentos de cada hijo
+  kids.forEach(kid => {
+    const savedMeds = localStorage.getItem('meds_' + kid);
+    if (savedMeds) {
+      medsCache[kid] = JSON.parse(savedMeds);
     } else {
-      histSec.style.display = 'none';
+      medsCache[kid] = [];
     }
+  });
+}
+
+// Guardar configuración
+window.saveConfig = function() {
+  const inputs = document.querySelectorAll('.kid-input');
+  const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n);
+  if (names.length === 0) { alert('Ingresa al menos un nombre'); return; }
+  
+  kids = names;
+  localStorage.setItem('medKids', JSON.stringify(kids));
+  
+  // Inicializar medicamentos vacíos para cada hijo
+  kids.forEach(kid => {
+    if (!medsCache[kid]) {
+      medsCache[kid] = [];
+      localStorage.setItem('meds_' + kid, JSON.stringify([]));
+    }
+  });
+  
+  showMain();
+};
+
+// Reconfigurar
+window.resetConfig = function() {
+  if (!confirm('¿Reconfigurar nombres? Se conservarán los medicamentos.')) return;
+  document.getElementById('setupSection').style.display = 'block';
+  document.getElementById('mainSection').style.display = 'none';
+  renderKidsInputs();
+};
+
+function renderKidsInputs() {
+  const cont = document.getElementById('kidsInputs');
+  cont.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const inp = document.createElement('input');
+    inp.className = 'kid-input';
+    inp.placeholder = `Hijo ${i+1}`;
+    inp.value = kids[i] || '';
+    cont.appendChild(inp);
+  }
+}
+
+function showMain() {
+  document.getElementById('setupSection').style.display = 'none';
+  document.getElementById('mainSection').style.display = 'block';
+  renderTabs();
+  if (kids.length > 0) {
+    selectKid(kids[0]);
+  }
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => renderMeds(), 30000);
+}
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  kids.forEach((k) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab';
+    btn.dataset.kid = k;
+    btn.innerHTML = `👤 ${k}`;
+    btn.onclick = () => selectKid(k);
+    tabs.appendChild(btn);
+  });
+}
+
+function selectKid(kid) {
+  currentKid = kid;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.kid === kid));
+  renderMeds();
+}
+
+// ====== MEDICAMENTOS ======
+window.addMed = function() {
+  const name = document.getElementById('medName').value.trim();
+  const dose = document.getElementById('medDose').value.trim();
+  const freq = parseFloat(document.getElementById('medFreq').value);
+  const time = document.getElementById('medTime').value;
+  
+  if (!name || !freq || !time) { alert('Completa nombre, frecuencia y hora'); return; }
+
+  const id = 'm_' + Date.now();
+  const med = {
+    id, name, dose, freq, startTime: time,
+    lastTaken: null,
+    createdAt: Date.now(),
+    history: []
+  };
+
+  if (!medsCache[currentKid]) medsCache[currentKid] = [];
+  medsCache[currentKid].push(med);
+  
+  // Guardar en localStorage
+  localStorage.setItem('meds_' + currentKid, JSON.stringify(medsCache[currentKid]));
+
+  document.getElementById('medName').value = '';
+  document.getElementById('medDose').value = '';
+  document.getElementById('medFreq').value = '';
+  
+  renderMeds();
+};
+
+window.takeMed = function(medId) {
+  const meds = medsCache[currentKid];
+  const med = meds.find(m => m.id === medId);
+  if (!med) return;
+
+  const now = new Date();
+  med.lastTaken = now.toISOString();
+  med.history = med.history || [];
+  med.history.unshift({
+    takenAt: now.toISOString(),
+    note: 'Tomado'
+  });
+  if (med.history.length > 20) med.history = med.history.slice(0, 20);
+
+  // Guardar en localStorage
+  localStorage.setItem('meds_' + currentKid, JSON.stringify(meds));
+  
+  renderMeds();
+};
+
+window.deleteMed = function(medId) {
+  if (!confirm('¿Eliminar este medicamento?')) return;
+  
+  medsCache[currentKid] = medsCache[currentKid].filter(m => m.id !== medId);
+  
+  // Guardar en localStorage
+  localStorage.setItem('meds_' + currentKid, JSON.stringify(medsCache[currentKid]));
+  
+  renderMeds();
+};
+
+function renderMeds() {
+  const list = document.getElementById('medList');
+  const meds = medsCache[currentKid] || [];
+
+  if (meds.length === 0) {
+    list.innerHTML = '<div class="empty">📭 No hay medicamentos registrados para este hijo.<br>Agrega el primero arriba.</div>';
+    document.getElementById('historySection').style.display = 'none';
+    return;
   }
 
-  function calcNextTime(med, now) {
-    if (!med.lastTaken) {
-      const [h, m] = med.startTime.split(':').map(Number);
-      let next = new Date(now);
-      next.setHours(h, m, 0, 0);
-      if (next < now) {
-        const freqMs = med.freq * 3600000;
-        const startMs = next.getTime();
-        const elapsed = now.getTime() - startMs;
-        const periods = Math.ceil(elapsed / freqMs);
-        next = new Date(startMs + periods * freqMs);
-      }
-      return next;
+  // Ordenar: los más urgentes primero
+  const now = new Date();
+  const withNext = meds.map(m => {
+    const next = calcNextTime(m, now);
+    const diffMin = (next - now) / 60000;
+    return { ...m, nextTime: next, diffMin };
+  }).sort((a, b) => a.diffMin - b.diffMin);
+
+  // Actualizar badge en pestaña
+  const urgentCount = withNext.filter(m => m.diffMin <= 0).length;
+  const tab = document.querySelector(`.tab[data-kid="${currentKid}"]`);
+  if (tab) {
+    tab.innerHTML = `👤 ${currentKid}${urgentCount > 0 ? `<span class="badge">${urgentCount}</span>` : ''}`;
+  }
+
+  list.innerHTML = withNext.map(m => {
+    let statusClass = 'ok', statusText = 'A tiempo', cardClass = '';
+    if (m.diffMin <= 0) {
+      statusClass = 'late';
+      statusText = `⚠️ Pasó hace ${Math.abs(Math.round(m.diffMin))} min`;
+      cardClass = 'urgent';
+    } else if (m.diffMin <= 30) {
+      statusClass = 'soon';
+      statusText = `Pronto: en ${Math.round(m.diffMin)} min`;
+      cardClass = 'soon';
+    } else {
+      const h = Math.floor(m.diffMin / 60);
+      const min = Math.round(m.diffMin % 60);
+      statusText = `En ${h}h ${min}min`;
     }
-    const last = new Date(med.lastTaken);
-    const next = new Date(last.getTime() + med.freq * 3600000);
+
+    const nextStr = m.nextTime.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    const lastStr = m.lastTaken ? new Date(m.lastTaken).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Nunca';
+
+    return `
+      <div class="med-card ${cardClass}">
+        <div class="med-info">
+          <h4>💊 ${m.name}</h4>
+          <div class="dose">${m.dose || 'Sin dosis'} · Cada ${m.freq}h</div>
+          <div class="next">Próxima toma: <strong>${nextStr}</strong></div>
+          <div class="next">Última toma: <small>${lastStr}</small></div>
+          <span class="status ${statusClass}">${statusText}</span>
+        </div>
+        <div class="med-actions">
+          <button class="btn-take" onclick="takeMed('${m.id}')">✅ Tomado</button>
+          <button class="btn-del" onclick="deleteMed('${m.id}')">🗑️ Eliminar</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Historial
+  const allHistory = [];
+  meds.forEach(m => {
+    (m.history || []).forEach(h => {
+      allHistory.push({ med: m.name, dose: m.dose, takenAt: new Date(h.takenAt) });
+    });
+  });
+  allHistory.sort((a,b) => b.takenAt - a.takenAt);
+  const recent = allHistory.slice(0, 10);
+  const histSec = document.getElementById('historySection');
+  if (recent.length > 0) {
+    histSec.style.display = 'block';
+    document.getElementById('historyList').innerHTML = recent.map(h => 
+      `<div class="history-item">✅ <b>${h.med}</b> ${h.dose} — ${h.takenAt.toLocaleString('es')}</div>`
+    ).join('');
+  } else {
+    histSec.style.display = 'none';
+  }
+}
+
+// ====== CÁLCULO DE PRÓXIMA TOMA ======
+function calcNextTime(med, now) {
+  if (!med.lastTaken) {
+    const [h, m] = med.startTime.split(':').map(Number);
+    let next = new Date(now);
+    next.setHours(h, m, 0, 0);
     if (next < now) {
       const freqMs = med.freq * 3600000;
-      const elapsed = now.getTime() - last.getTime();
+      const startMs = next.getTime();
+      const elapsed = now.getTime() - startMs;
       const periods = Math.ceil(elapsed / freqMs);
-      return new Date(last.getTime() + periods * freqMs);
+      next = new Date(startMs + periods * freqMs);
     }
     return next;
   }
 
-  function updateClock() {
-    const now = new Date();
-    document.getElementById('clock').textContent = now.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }) + ' · ' + now.toLocaleTimeString('es');
+  const last = new Date(med.lastTaken);
+  const next = new Date(last.getTime() + med.freq * 3600000);
+  if (next < now) {
+    const freqMs = med.freq * 3600000;
+    const elapsed = now.getTime() - last.getTime();
+    const periods = Math.ceil(elapsed / freqMs);
+    return new Date(last.getTime() + periods * freqMs);
   }
-  setInterval(updateClock, 1000);
-  updateClock();
+  return next;
+}
 
-  async function init() {
-    try {
-      const cfgSnap = await getDoc(doc(db, 'config', 'main'));
-      if (cfgSnap.exists()) {
-        kids = cfgSnap.data().kids || [];
-        localStorage.setItem('kids', JSON.stringify(kids));
-      } else {
-        const stored = localStorage.getItem('kids');
-        if (stored) kids = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('Firestore no disponible, usando localStorage', e);
-      const stored = localStorage.getItem('kids');
-      if (stored) kids = JSON.parse(stored);
-    }
+// ====== RELOJ ======
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = 
+    now.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }) + 
+    ' · ' + now.toLocaleTimeString('es');
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-    if (kids && kids.length > 0) showMain();
-    else {
-      document.getElementById('setupSection').style.display = 'block';
-      renderKidsInputs();
-    }
+// ====== INICIO ======
+function init() {
+  loadData();
+  if (kids && kids.length > 0) {
+    showMain();
+  } else {
+    document.getElementById('setupSection').style.display = 'block';
+    renderKidsInputs();
   }
-  init();
+}
+init();
 </script>
 </body>
 </html>
