@@ -8,11 +8,10 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
   body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
   .container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
-  header { background: linear-gradient(135deg, #4a5fc1, #6a4c93); color: #fff; padding: 20px; text-align: center; }
+  header { background: linear-gradient(135deg, #4a5fc1, #6a4c93); color: #fff; padding: 20px; text-align: center; position: relative; }
   header h1 { font-size: 1.8em; }
   header p { opacity: 0.9; margin-top: 5px; font-size: 0.9em; }
 
-  /* Pestañas de hijos */
   .tabs { display: flex; flex-wrap: wrap; background: #f0f2f8; border-bottom: 2px solid #ddd; }
   .tab { flex: 1 1 auto; padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 0.95em; font-weight: 600; color: #555; transition: all 0.2s; border-bottom: 3px solid transparent; }
   .tab:hover { background: #e3e7f5; }
@@ -20,14 +19,11 @@
   .tab .badge { display: inline-block; background: #ff5252; color: #fff; border-radius: 50%; width: 20px; height: 20px; line-height: 20px; font-size: 0.75em; margin-left: 5px; }
 
   .content { padding: 20px; }
-
-  /* Configuración inicial */
   .setup { padding: 30px; text-align: center; }
   .setup input { padding: 10px; margin: 5px; border: 2px solid #ddd; border-radius: 8px; width: 200px; font-size: 1em; }
   .setup button { padding: 12px 24px; background: #4a5fc1; color: #fff; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; margin-top: 15px; }
   .setup button:hover { background: #3a4fa1; }
 
-  /* Formulario agregar medicamento */
   .form-med { background: #f8f9fc; padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e4ef; }
   .form-med h3 { color: #4a5fc1; margin-bottom: 12px; font-size: 1.1em; }
   .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
@@ -36,7 +32,6 @@
   .form-row button { padding: 8px 14px; background: #28a745; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
   .form-row button:hover { background: #218838; }
 
-  /* Lista de medicamentos */
   .med-list { display: grid; gap: 12px; }
   .med-card { background: #fff; border: 2px solid #e0e4ef; border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; transition: all 0.3s; }
   .med-card.urgent { border-color: #ff5252; background: #fff5f5; animation: pulse 2s infinite; }
@@ -60,35 +55,30 @@
 
   .empty { text-align: center; padding: 40px; color: #888; }
   .loading { text-align: center; padding: 20px; color: #666; }
-
-  /* Historial */
   .history { margin-top: 25px; background: #f8f9fc; padding: 15px; border-radius: 12px; }
   .history h3 { color: #4a5fc1; margin-bottom: 10px; font-size: 1em; }
   .history-item { padding: 6px 0; border-bottom: 1px solid #e0e4ef; font-size: 0.88em; color: #555; }
   .history-item:last-child { border-bottom: none; }
-
-  /* Config botón */
   .config-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
   .config-btn:hover { background: rgba(255,255,255,0.3); }
 
   @media (max-width: 700px) {
     .form-row { grid-template-columns: 1fr 1fr; }
     .tab { font-size: 0.85em; padding: 10px; }
-    header { position: relative; }
   }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <header style="position: relative;">
+  <header>
     <h1>💊 Control de Medicamentos</h1>
     <p id="clock">Cargando hora...</p>
     <button class="config-btn" onclick="resetConfig()">⚙️ Reconfigurar</button>
   </header>
 
   <div id="setupSection" class="setup" style="display:none;">
-    <h2 style="color:#4a5fc1; margin-bottom:15px;">Configura los nombres de tus 7 hijos</h2>
+    <h2 style="color:#4a5fc1; margin-bottom:15px;">Configura los nombres de tus hijos</h2>
     <p style="color:#666; margin-bottom:20px;">Puedes dejar vacíos los que no uses</p>
     <div id="kidsInputs"></div>
     <button onclick="saveConfig()">💾 Guardar y continuar</button>
@@ -100,30 +90,14 @@
       <div class="form-med">
         <h3>➕ Agregar medicamento</h3>
         <div class="form-row">
-          <div>
-            <label>Nombre del medicamento</label>
-            <input type="text" id="medName" placeholder="Ej: Paracetamol">
-          </div>
-          <div>
-            <label>Dosis</label>
-            <input type="text" id="medDose" placeholder="Ej: 5ml">
-          </div>
-          <div>
-            <label>Cada (horas)</label>
-            <input type="number" id="medFreq" placeholder="8" min="1" step="0.5">
-          </div>
-          <div>
-            <label>Primera toma (HH:MM)</label>
-            <input type="time" id="medTime" value="08:00">
-          </div>
-          <div>
-            <button onclick="addMed()">Agregar</button>
-          </div>
+          <div><label>Nombre del medicamento</label><input type="text" id="medName" placeholder="Ej: Paracetamol"></div>
+          <div><label>Dosis</label><input type="text" id="medDose" placeholder="Ej: 5ml"></div>
+          <div><label>Cada (horas)</label><input type="number" id="medFreq" placeholder="8" min="1" step="0.5"></div>
+          <div><label>Primera toma (HH:MM)</label><input type="time" id="medTime" value="08:00"></div>
+          <div><button onclick="addMed()">Agregar</button></div>
         </div>
       </div>
-
       <div id="medList" class="med-list"></div>
-
       <div class="history" id="historySection" style="display:none;">
         <h3>📋 Últimas tomas registradas</h3>
         <div id="historyList"></div>
@@ -132,313 +106,282 @@
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteField, arrayUnion } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ⚠️ REEMPLAZA con tu configuración de Firebase
-const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO_ID",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "XXXXX",
-  appId: "XXXXX"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let currentKid = null;
-let kids = [];
-let medsCache = {}; // kid -> [meds]
-let refreshInterval = null;
-
-// ====== CONFIG ======
-window.saveConfig = async function() {
-  const inputs = document.querySelectorAll('.kid-input');
-  const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n);
-  if (names.length === 0) { alert('Ingresa al menos un nombre'); return; }
-  kids = names;
-  await setDoc(doc(db, 'config', 'main'), { kids, updatedAt: Date.now() });
-  localStorage.setItem('kids', JSON.stringify(kids));
-  showMain();
-};
-
-window.resetConfig = async function() {
-  if (!confirm('¿Reconfigurar nombres? Se conservarán los medicamentos.')) return;
-  document.getElementById('setupSection').style.display = 'block';
-  document.getElementById('mainSection').style.display = 'none';
-  renderKidsInputs();
-};
-
-function renderKidsInputs() {
-  const cont = document.getElementById('kidsInputs');
-  cont.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const inp = document.createElement('input');
-    inp.className = 'kid-input';
-    inp.placeholder = `Hijo ${i+1}`;
-    inp.value = kids[i] || '';
-    cont.appendChild(inp);
-  }
-}
-
-async function showMain() {
-  document.getElementById('setupSection').style.display = 'none';
-  document.getElementById('mainSection').style.display = 'block';
-  renderTabs();
-  selectKid(kids[0]);
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => renderMeds(), 30000); // refresca cada 30s
-}
-
-function renderTabs() {
-  const tabs = document.getElementById('tabs');
-  tabs.innerHTML = '';
-  kids.forEach((k, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'tab';
-    btn.dataset.kid = k;
-    btn.innerHTML = `👤 ${k}`;
-    btn.onclick = () => selectKid(k);
-    tabs.appendChild(btn);
-  });
-}
-
-function selectKid(kid) {
-  currentKid = kid;
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.kid === kid);
-  });
-  loadMeds(kid);
-}
-
-// ====== MEDICAMENTOS ======
-window.addMed = async function() {
-  const name = document.getElementById('medName').value.trim();
-  const dose = document.getElementById('medDose').value.trim();
-  const freq = parseFloat(document.getElementById('medFreq').value);
-  const time = document.getElementById('medTime').value;
-  if (!name || !freq || !time) { alert('Completa nombre, frecuencia y hora'); return; }
-
-  const id = 'm_' + Date.now();
-  const med = {
-    id, name, dose, freq, startTime: time,
-    lastTaken: null,
-    createdAt: Date.now()
+  // ⚠️ PASO CRÍTICO: Reemplaza estos valores con los de tu proyecto de Firebase
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY_AQUI",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    projectId: "TU_PROYECTO_ID",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
   };
 
-  const ref = doc(db, 'meds', currentKid);
-  const snap = await getDoc(ref);
-  const data = snap.exists() ? snap.data() : { meds: [] };
-  data.meds = data.meds || [];
-  data.meds.push(med);
-  await setDoc(ref, data);
+  // Verificación de seguridad para avisarte si no has puesto tus claves
+  if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
+    alert("⚠️ AVISO: La app no funcionará hasta que reemplaces las claves de Firebase en el código. Revisa las instrucciones.");
+  }
 
-  document.getElementById('medName').value = '';
-  document.getElementById('medDose').value = '';
-  document.getElementById('medFreq').value = '';
-  loadMeds(currentKid);
-};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-window.takeMed = async function(medId) {
-  const ref = doc(db, 'meds', currentKid);
-  const snap = await getDoc(ref);
-  const data = snap.data();
-  const med = data.meds.find(m => m.id === medId);
-  if (!med) return;
+  let currentKid = null;
+  let kids = [];
+  let medsCache = {};
+  let refreshInterval = null;
 
-  const now = new Date();
-  med.lastTaken = now.toISOString();
-  med.history = med.history || [];
-  med.history.unshift({
-    takenAt: now.toISOString(),
-    note: 'Tomado'
-  });
-  if (med.history.length > 20) med.history = med.history.slice(0, 20);
+  window.saveConfig = async function() {
+    const inputs = document.querySelectorAll('.kid-input');
+    const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n);
+    if (names.length === 0) { alert('Ingresa al menos un nombre'); return; }
+    kids = names;
+    await setDoc(doc(db, 'config', 'main'), { kids, updatedAt: Date.now() });
+    localStorage.setItem('kids', JSON.stringify(kids));
+    showMain();
+  };
 
-  await setDoc(ref, data);
-  loadMeds(currentKid);
-};
+  window.resetConfig = async function() {
+    if (!confirm('¿Reconfigurar nombres? Se conservarán los medicamentos.')) return;
+    document.getElementById('setupSection').style.display = 'block';
+    document.getElementById('mainSection').style.display = 'none';
+    renderKidsInputs();
+  };
 
-window.deleteMed = async function(medId) {
-  if (!confirm('¿Eliminar este medicamento?')) return;
-  const ref = doc(db, 'meds', currentKid);
-  const snap = await getDoc(ref);
-  const data = snap.data();
-  data.meds = data.meds.filter(m => m.id !== medId);
-  await setDoc(ref, data);
-  loadMeds(currentKid);
-};
+  function renderKidsInputs() {
+    const cont = document.getElementById('kidsInputs');
+    cont.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const inp = document.createElement('input');
+      inp.className = 'kid-input';
+      inp.placeholder = `Hijo ${i+1}`;
+      inp.value = kids[i] || '';
+      cont.appendChild(inp);
+    }
+  }
 
-async function loadMeds(kid) {
-  const list = document.getElementById('medList');
-  list.innerHTML = '<div class="loading">Cargando...</div>';
-  try {
-    const ref = doc(db, 'meds', kid);
+  async function showMain() {
+    document.getElementById('setupSection').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+    renderTabs();
+    selectKid(kids[0]);
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => renderMeds(), 30000);
+  }
+
+  function renderTabs() {
+    const tabs = document.getElementById('tabs');
+    tabs.innerHTML = '';
+    kids.forEach((k) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab';
+      btn.dataset.kid = k;
+      btn.innerHTML = `👤 ${k}`;
+      btn.onclick = () => selectKid(k);
+      tabs.appendChild(btn);
+    });
+  }
+
+  function selectKid(kid) {
+    currentKid = kid;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.kid === kid));
+    loadMeds(kid);
+  }
+
+  window.addMed = async function() {
+    const name = document.getElementById('medName').value.trim();
+    const dose = document.getElementById('medDose').value.trim();
+    const freq = parseFloat(document.getElementById('medFreq').value);
+    const time = document.getElementById('medTime').value;
+    if (!name || !freq || !time) { alert('Completa nombre, frecuencia y hora'); return; }
+
+    const id = 'm_' + Date.now();
+    const med = { id, name, dose, freq, startTime: time, lastTaken: null, createdAt: Date.now(), history: [] };
+
+    const ref = doc(db, 'meds', currentKid);
     const snap = await getDoc(ref);
     const data = snap.exists() ? snap.data() : { meds: [] };
-    medsCache[kid] = data.meds || [];
-    renderMeds();
-  } catch (e) {
-    list.innerHTML = '<div class="empty">Error al cargar. Verifica tu configuración de Firebase.</div>';
-    console.error(e);
+    data.meds = data.meds || [];
+    data.meds.push(med);
+    await setDoc(ref, data);
+
+    document.getElementById('medName').value = '';
+    document.getElementById('medDose').value = '';
+    document.getElementById('medFreq').value = '';
+    loadMeds(currentKid);
+  };
+
+  window.takeMed = async function(medId) {
+    const ref = doc(db, 'meds', currentKid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const med = data.meds.find(m => m.id === medId);
+    if (!med) return;
+
+    const now = new Date();
+    med.lastTaken = now.toISOString();
+    med.history = med.history || [];
+    med.history.unshift({ takenAt: now.toISOString(), note: 'Tomado' });
+    if (med.history.length > 20) med.history = med.history.slice(0, 20);
+
+    await setDoc(ref, data);
+    loadMeds(currentKid);
+  };
+
+  window.deleteMed = async function(medId) {
+    if (!confirm('¿Eliminar este medicamento?')) return;
+    const ref = doc(db, 'meds', currentKid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    data.meds = data.meds.filter(m => m.id !== medId);
+    await setDoc(ref, data);
+    loadMeds(currentKid);
+  };
+
+  async function loadMeds(kid) {
+    const list = document.getElementById('medList');
+    list.innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      const ref = doc(db, 'meds', kid);
+      const snap = await getDoc(ref);
+      const data = snap.exists() ? snap.data() : { meds: [] };
+      medsCache[kid] = data.meds || [];
+      renderMeds();
+    } catch (e) {
+      list.innerHTML = '<div class="empty">Error al cargar. Verifica tu configuración de Firebase.</div>';
+      console.error(e);
+    }
   }
-}
 
-function renderMeds() {
-  const list = document.getElementById('medList');
-  const meds = medsCache[currentKid] || [];
-
-  if (meds.length === 0) {
-    list.innerHTML = '<div class="empty">📭 No hay medicamentos registrados para este hijo.<br>Agrega el primero arriba.</div>';
-    document.getElementById('historySection').style.display = 'none';
-    return;
-  }
-
-  // Ordenar: los más urgentes primero
-  const now = new Date();
-  const withNext = meds.map(m => {
-    const next = calcNextTime(m, now);
-    const diffMin = (next - now) / 60000;
-    return { ...m, nextTime: next, diffMin };
-  }).sort((a, b) => a.diffMin - b.diffMin);
-
-  // Actualizar badge en pestaña
-  const urgentCount = withNext.filter(m => m.diffMin <= 0).length;
-  const tab = document.querySelector(`.tab[data-kid="${currentKid}"]`);
-  if (tab) {
-    tab.innerHTML = `👤 ${currentKid}${urgentCount > 0 ? `<span class="badge">${urgentCount}</span>` : ''}`;
-  }
-
-  list.innerHTML = withNext.map(m => {
-    let statusClass = 'ok', statusText = 'A tiempo', cardClass = '';
-    if (m.diffMin <= 0) {
-      statusClass = 'late';
-      statusText = `⚠️ Pasó hace ${Math.abs(Math.round(m.diffMin))} min`;
-      cardClass = 'urgent';
-    } else if (m.diffMin <= 30) {
-      statusClass = 'soon';
-      statusText = `Pronto: en ${Math.round(m.diffMin)} min`;
-      cardClass = 'soon';
-    } else {
-      const h = Math.floor(m.diffMin / 60);
-      const min = Math.round(m.diffMin % 60);
-      statusText = `En ${h}h ${min}min`;
+  function renderMeds() {
+    const list = document.getElementById('medList');
+    const meds = medsCache[currentKid] || [];
+    if (meds.length === 0) {
+      list.innerHTML = '<div class="empty">📭 No hay medicamentos registrados.<br>Agrega el primero arriba.</div>';
+      document.getElementById('historySection').style.display = 'none';
+      return;
     }
 
-    const nextStr = m.nextTime.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-    const lastStr = m.lastTaken ? new Date(m.lastTaken).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Nunca';
+    const now = new Date();
+    const withNext = meds.map(m => {
+      const next = calcNextTime(m, now);
+      const diffMin = (next - now) / 60000;
+      return { ...m, nextTime: next, diffMin };
+    }).sort((a, b) => a.diffMin - b.diffMin);
 
-    return `
-      <div class="med-card ${cardClass}">
-        <div class="med-info">
-          <h4>💊 ${m.name}</h4>
-          <div class="dose">${m.dose || 'Sin dosis'} · Cada ${m.freq}h</div>
-          <div class="next">Próxima toma: <strong>${nextStr}</strong></div>
-          <div class="next">Última toma: <small>${lastStr}</small></div>
-          <span class="status ${statusClass}">${statusText}</span>
-        </div>
-        <div class="med-actions">
-          <button class="btn-take" onclick="takeMed('${m.id}')">✅ Tomado</button>
-          <button class="btn-del" onclick="deleteMed('${m.id}')">🗑️ Eliminar</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+    const urgentCount = withNext.filter(m => m.diffMin <= 0).length;
+    const tab = document.querySelector(`.tab[data-kid="${currentKid}"]`);
+    if (tab) {
+      tab.innerHTML = `👤 ${currentKid}${urgentCount > 0 ? `<span class="badge">${urgentCount}</span>` : ''}`;
+    }
 
-  // Historial
-  const allHistory = [];
-  meds.forEach(m => {
-    (m.history || []).forEach(h => {
-      allHistory.push({ med: m.name, dose: m.dose, takenAt: new Date(h.takenAt) });
+    list.innerHTML = withNext.map(m => {
+      let statusClass = 'ok', statusText = 'A tiempo', cardClass = '';
+      if (m.diffMin <= 0) {
+        statusClass = 'late'; statusText = `⚠️ Pasó hace ${Math.abs(Math.round(m.diffMin))} min`; cardClass = 'urgent';
+      } else if (m.diffMin <= 30) {
+        statusClass = 'soon'; statusText = `Pronto: en ${Math.round(m.diffMin)} min`; cardClass = 'soon';
+      } else {
+        const h = Math.floor(m.diffMin / 60);
+        const min = Math.round(m.diffMin % 60);
+        statusText = `En ${h}h ${min}min`;
+      }
+
+      const nextStr = m.nextTime.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      const lastStr = m.lastTaken ? new Date(m.lastTaken).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Nunca';
+
+      return `
+        <div class="med-card ${cardClass}">
+          <div class="med-info">
+            <h4>💊 ${m.name}</h4>
+            <div class="dose">${m.dose || 'Sin dosis'} · Cada ${m.freq}h</div>
+            <div class="next">Próxima toma: <strong>${nextStr}</strong></div>
+            <div class="next">Última toma: <small>${lastStr}</small></div>
+            <span class="status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="med-actions">
+            <button class="btn-take" onclick="takeMed('${m.id}')">✅ Tomado</button>
+            <button class="btn-del" onclick="deleteMed('${m.id}')">🗑️ Eliminar</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const allHistory = [];
+    meds.forEach(m => {
+      (m.history || []).forEach(h => allHistory.push({ med: m.name, dose: m.dose, takenAt: new Date(h.takenAt) }));
     });
-  });
-  allHistory.sort((a,b) => b.takenAt - a.takenAt);
-  const recent = allHistory.slice(0, 10);
-  const histSec = document.getElementById('historySection');
-  if (recent.length > 0) {
-    histSec.style.display = 'block';
-    document.getElementById('historyList').innerHTML = recent.map(h => 
-      `<div class="history-item">✅ <b>${h.med}</b> ${h.dose} — ${h.takenAt.toLocaleString('es')}</div>`
-    ).join('');
-  } else {
-    histSec.style.display = 'none';
+    allHistory.sort((a,b) => b.takenAt - a.takenAt);
+    const recent = allHistory.slice(0, 10);
+    const histSec = document.getElementById('historySection');
+    if (recent.length > 0) {
+      histSec.style.display = 'block';
+      document.getElementById('historyList').innerHTML = recent.map(h => 
+        `<div class="history-item">✅ <b>${h.med}</b> ${h.dose} — ${h.takenAt.toLocaleString('es')}</div>`
+      ).join('');
+    } else {
+      histSec.style.display = 'none';
+    }
   }
-}
 
-// ====== CÁLCULO DE PRÓXIMA TOMA ======
-function calcNextTime(med, now) {
-  // Si nunca se tomó, usa la hora de inicio de hoy (o mañana si ya pasó)
-  if (!med.lastTaken) {
-    const [h, m] = med.startTime.split(':').map(Number);
-    let next = new Date(now);
-    next.setHours(h, m, 0, 0);
+  function calcNextTime(med, now) {
+    if (!med.lastTaken) {
+      const [h, m] = med.startTime.split(':').map(Number);
+      let next = new Date(now);
+      next.setHours(h, m, 0, 0);
+      if (next < now) {
+        const freqMs = med.freq * 3600000;
+        const startMs = next.getTime();
+        const elapsed = now.getTime() - startMs;
+        const periods = Math.ceil(elapsed / freqMs);
+        next = new Date(startMs + periods * freqMs);
+      }
+      return next;
+    }
+    const last = new Date(med.lastTaken);
+    const next = new Date(last.getTime() + med.freq * 3600000);
     if (next < now) {
-      // Si ya pasó la hora de inicio, calcula siguiente múltiplo desde la hora de inicio
       const freqMs = med.freq * 3600000;
-      const startMs = next.getTime();
-      const elapsed = now.getTime() - startMs;
+      const elapsed = now.getTime() - last.getTime();
       const periods = Math.ceil(elapsed / freqMs);
-      next = new Date(startMs + periods * freqMs);
+      return new Date(last.getTime() + periods * freqMs);
     }
     return next;
   }
 
-  // Si ya se tomó, próxima = última + frecuencia
-  const last = new Date(med.lastTaken);
-  const next = new Date(last.getTime() + med.freq * 3600000);
-  // Si la próxima ya pasó, recalcula saltando hasta la siguiente futura
-  if (next < now) {
-    const freqMs = med.freq * 3600000;
-    const elapsed = now.getTime() - last.getTime();
-    const periods = Math.ceil(elapsed / freqMs);
-    return new Date(last.getTime() + periods * freqMs);
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }) + ' · ' + now.toLocaleTimeString('es');
   }
-  return next;
-}
+  setInterval(updateClock, 1000);
+  updateClock();
 
-// ====== RELOJ ======
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent = 
-    now.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }) + 
-    ' · ' + now.toLocaleTimeString('es');
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ====== INIT ======
-async function init() {
-  try {
-    // Intentar cargar desde Firestore primero
-    const cfgSnap = await getDoc(doc(db, 'config', 'main'));
-    if (cfgSnap.exists()) {
-      kids = cfgSnap.data().kids || [];
-      localStorage.setItem('kids', JSON.stringify(kids));
-    } else {
-      // Fallback a localStorage
+  async function init() {
+    try {
+      const cfgSnap = await getDoc(doc(db, 'config', 'main'));
+      if (cfgSnap.exists()) {
+        kids = cfgSnap.data().kids || [];
+        localStorage.setItem('kids', JSON.stringify(kids));
+      } else {
+        const stored = localStorage.getItem('kids');
+        if (stored) kids = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Firestore no disponible, usando localStorage', e);
       const stored = localStorage.getItem('kids');
       if (stored) kids = JSON.parse(stored);
     }
-  } catch (e) {
-    console.warn('Firestore no disponible, usando localStorage', e);
-    const stored = localStorage.getItem('kids');
-    if (stored) kids = JSON.parse(stored);
-  }
 
-  if (kids && kids.length > 0) {
-    showMain();
-  } else {
-    document.getElementById('setupSection').style.display = 'block';
-    renderKidsInputs();
+    if (kids && kids.length > 0) showMain();
+    else {
+      document.getElementById('setupSection').style.display = 'block';
+      renderKidsInputs();
+    }
   }
-}
-init();
+  init();
 </script>
-
 </body>
 </html>
